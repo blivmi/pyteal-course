@@ -1,5 +1,8 @@
 from pyteal import *
+from pyteal.ast.bytes import Bytes
 from pyteal_helpers import program
+
+UINT64_MAX = 0xFFFFFFFFFFFFFFFF
 
 def approval():
     global_owner = Bytes("owner") # byteslice
@@ -11,7 +14,14 @@ def approval():
     scratch_counter = ScratchVar(TealType.uint64)
 
     increment = Seq(
-        App.globalPut(global_counter, App.globalGet(global_counter) + Int(1)),
+        scratch_counter.store(App.globalGet(global_counter)),
+        # check overflow
+        If(
+            scratch_counter.load() < Int(UINT64_MAX)
+        )
+        .Then(
+            App.globalPut(global_counter, scratch_counter.load() + Int(1)),
+        ),
         Approve(),
     )
 
